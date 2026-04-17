@@ -4,7 +4,7 @@
 
 ## Diagnóstico Geral
 
-A página realiza múltiplas chamadas a APIs externas (CRM Netsac) a cada carregamento, sem cache, sem paralelismo e sem tratamento de falhas. Isso resulta em latência elevada e risco de travamento total da página caso o servidor externo esteja lento.
+Sem cache, sem paralelismo e sem tratamento de falhas. Isso resulta em latência elevada e risco de travamento total da página caso o servidor externo esteja lento.
 
 ---
 
