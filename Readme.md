@@ -1,5 +1,35 @@
 # Melhorias de Desempenho — Página Home OSC (Engaja Brasil)
 
+
+## 📊 Tabela de Tempos (Hard Refresh — sem cache)
+
+| Cenário                                              | Tempo (s) |
+|-----------------------------------------------------|----------|
+| Com links estáticos                                 | 13       |
+| Sem links estáticos                                 | 10       |
+| Sem API (com links estáticos)                       | 06       |
+| Sem API (sem links estáticos)                       | 05       |
+
+---
+
+## 🧠 Leitura Rápida
+
+- 🔗 Links estáticos adicionam ~3s
+- 🌐 Chamadas de API adicionam ~4–7s
+- ⚠️ Principal gargalo: dependência de API externa
+
+---
+
+## ⚠️ Diagnóstico Geral
+
+- ❌ Sem cache
+- ❌ Sem paralelismo
+- ❌ Sem tratamento de falhas
+
+➡️ Resultado:
+- Alta latência
+- Risco de travamento total se a API estiver lenta ou indisponível
+- 
 ---
 
 ## Diagnóstico Geral
