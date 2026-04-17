@@ -9,6 +9,8 @@
 | Sem links estáticos                                 | 10       |
 | Sem API (com links estáticos)                       | 06       |
 | Sem API (sem links estáticos)                       | 05       |
+| Com melhorias citadas no documento sem cache        | 07       |
+| Com melhorias citadas no documento com cache        | 04       |
 
 ---
 
