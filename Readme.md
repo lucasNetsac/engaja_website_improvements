@@ -53,15 +53,6 @@ O menu menu_sys_invest que é utilizado nos testes, faz chamadas para:
 - 'mode' => 'Accounts','action'=>'resgatar'
 - 'mode' => 'SalesOrder','action'=>'listar_registro'
 
-```php
-// No login — salvar na sessão
-$_SESSION['nome_usuario'] = $obj[0]['nome'];
-$_SESSION['plano_usuario'] = $obj[0]['id_plano'];
-
-// No topo.php — usar da sessão, sem chamar API
-echo $_SESSION['nome_usuario'];
-```
-
 ---
 
 ### 🔴 CRÍTICO — API SalesOrder sequencial consome 2.855 s
