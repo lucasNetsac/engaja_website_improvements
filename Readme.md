@@ -64,8 +64,6 @@ O menu menu_sys_invest que é utilizado nos testes, faz chamadas para:
 $result2c = curl_exec($ch2c); // SalesOrder — 2.855 s
 ```
 
-**Solução recomendada:** Paralelizar as 3 chamadas com `curl_multi` (ver seção 5).
-
 ---
 
 ### 🟠 ALTO — API Contatos consome 1.656 s
@@ -76,15 +74,11 @@ $result2c = curl_exec($ch2c); // SalesOrder — 2.855 s
 $result2c = curl_exec($ch2c); // Contatos — 1.656 s
 ```
 
-Mesma causa: chamada sequencial e bloqueante. Resolvida junto com SalesOrder via `curl_multi`.
-
 ---
 
 ### 🟠 ALTO — API Accounts (sem tempo final registrado)
 
 **Arquivo:** `conselheiros_home.php`
-
-O log foi cortado antes do resultado, mas com base nas medições anteriores essa chamada custa entre **1.5 s e 2.7 s**.
 
 ---
 
