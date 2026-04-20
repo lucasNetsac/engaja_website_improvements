@@ -99,8 +99,6 @@ API Contatos   →→→ espera →→→ API SalesOrder   →→→ espera →�
 ```
 
 **Tempo atual (soma):** ~6.5 s  
-**Tempo possível (paralelo):** ~2.8 s (tempo da mais lenta)  
-**Economia estimada:** ~3.7 s
 
 ---
 
