@@ -52,17 +52,6 @@ O menu menu_sys_invest que é utilizado nos testes, faz chamadas para:
 
 - 'mode' => 'Accounts','action'=>'resgatar'
 - 'mode' => 'SalesOrder','action'=>'listar_registro'
-**Também suspeito:**
-```php
-RetornaDescNovo('usuarios','id_plano','id',$_SESSION['id_logado'],$con)
-```
-Essa função roda em toda página. Se internamente chamar a API do CRM, contribui para o tempo do topo.
-
-**Impacto:** 4.758 s em toda navegação do portal, independente do módulo acessado.
-
-**Solução recomendada:**
-- Adicionar timers dentro do `topo.php` para isolar qual menu é o culpado
-- Cachear os dados do usuário (nome, plano, notificações) na `$_SESSION` no login e reutilizá-los no menu — evitando chamadas ao CRM a cada página
 
 ```php
 // No login — salvar na sessão
