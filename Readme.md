@@ -57,6 +57,8 @@ O menu menu_sys_invest que é utilizado nos testes, faz chamadas para:
 
 ### 🔴 CRÍTICO — API SalesOrder sequencial consome 2.855 s
 
+ $data2c = array('mode' => 'SalesOrder','action'=>'listar_registro','order_by_field'=>'modifiedtime',
+
 **Arquivo:** `conselheiros_home.php`
 
 ```php
@@ -67,6 +69,7 @@ $result2c = curl_exec($ch2c); // SalesOrder — 2.855 s
 ---
 
 ### 🟠 ALTO — API Contatos consome 1.656 s
+$data2c = array('mode' => 'Contatos','action'=>'resgatar','id'=>$_SESSION['id_emp_logado'],'ong_id'=>$_SESSION['id_emp_logado']);
 
 **Arquivo:** `conselheiros_home.php`
 
@@ -76,7 +79,9 @@ $result2c = curl_exec($ch2c); // Contatos — 1.656 s
 
 ---
 
-### 🟠 ALTO — API Accounts (sem tempo final registrado)
+### 🟠 ALTO — API Accounts
+
+$data2d = array('mode' => 'Accounts','action'=>'resgatar','id'=>$_SESSION['id_cont_logado']);
 
 **Arquivo:** `conselheiros_home.php`
 
