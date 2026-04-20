@@ -1,3 +1,211 @@
+# Performance Report — Portal Engaja Brasil Conselheiros
+
+> Medição realizada em: 2026-04-20  
+> Arquivos analisados: `index.php` e `conselheiros_home.php`
+
+---
+
+## 1. Timeline Completa
+
+| Etapa | Tempo acumulado | Tempo gasto na etapa |
+|---|---|---|
+| antes de inicial.php | 0.000 s | — |
+| depois de inicial.php | 0.001 s | **0.001 s** |
+| depois de funcoes.inc.php | 0.001 s | **0.000 s** |
+| depois de PDO connect | 0.005 s | **0.004 s** |
+| antes de topo.php | 0.007 s | 0.002 s |
+| **depois de topo.php** | **4.765 s** | **🔴 4.758 s** |
+| depois de PDO connect (conselheiros) | 4.769 s | 0.004 s |
+| depois SQL cad_invest | 4.770 s | **0.001 s** |
+| **depois API Contatos** | **6.426 s** | **🟠 1.656 s** |
+| **depois API SalesOrder** | **9.281 s** | **🔴 2.855 s** |
+| API Accounts (em andamento...) | 9.281 s+ | 🔴 em medição |
+
+---
+
+## 2. Distribuição do Tempo
+
+```
+topo.php (menu)     ████████████████████████████████████  4.758 s  (51%)
+API SalesOrder      ██████████████████████               2.855 s  (31%)
+API Contatos        ████████████                         1.656 s  (18%)
+API Accounts        (sem valor final registrado)
+Todo o resto        ░                                    0.012 s  (<1%)
+```
+
+---
+
+## 3. Problemas Identificados
+
+---
+
+### 🔴 CRÍTICO — `topo.php` consome 4.758 s
+
+**Arquivo:** `index.php` → `include("topo.php")`
+
+O topo carrega um dos três menus dependendo da sessão:
+- `menu_sys_invest.php` — para investidores logados
+- `menu_sys_invest2.php` — comentado
+- `menu_sys.php` — para não logados
+
+Um desses menus está fazendo **chamadas HTTP ao CRM** para montar o cabeçalho da página (nome do usuário, notificações, etc.), bloqueando tudo antes mesmo do conteúdo carregar.
+
+**Também suspeito:**
+```php
+RetornaDescNovo('usuarios','id_plano','id',$_SESSION['id_logado'],$con)
+```
+Essa função roda em toda página. Se internamente chamar a API do CRM, contribui para o tempo do topo.
+
+**Impacto:** 4.758 s em toda navegação do portal, independente do módulo acessado.
+
+**Solução recomendada:**
+- Adicionar timers dentro do `topo.php` para isolar qual menu é o culpado
+- Cachear os dados do usuário (nome, plano, notificações) na `$_SESSION` no login e reutilizá-los no menu — evitando chamadas ao CRM a cada página
+
+```php
+// No login — salvar na sessão
+$_SESSION['nome_usuario'] = $obj[0]['nome'];
+$_SESSION['plano_usuario'] = $obj[0]['id_plano'];
+
+// No topo.php — usar da sessão, sem chamar API
+echo $_SESSION['nome_usuario'];
+```
+
+---
+
+### 🔴 CRÍTICO — API SalesOrder sequencial consome 2.855 s
+
+**Arquivo:** `conselheiros_home.php`
+
+```php
+// executa sozinha, bloqueia até terminar
+$result2c = curl_exec($ch2c); // SalesOrder — 2.855 s
+```
+
+**Solução recomendada:** Paralelizar as 3 chamadas com `curl_multi` (ver seção 5).
+
+---
+
+### 🟠 ALTO — API Contatos consome 1.656 s
+
+**Arquivo:** `conselheiros_home.php`
+
+```php
+$result2c = curl_exec($ch2c); // Contatos — 1.656 s
+```
+
+Mesma causa: chamada sequencial e bloqueante. Resolvida junto com SalesOrder via `curl_multi`.
+
+---
+
+### 🟠 ALTO — API Accounts (sem tempo final registrado)
+
+**Arquivo:** `conselheiros_home.php`
+
+O log foi cortado antes do resultado, mas com base nas medições anteriores essa chamada custa entre **1.5 s e 2.7 s**.
+
+---
+
+### 🟡 MÉDIO — Três chamadas ao CRM sequenciais
+
+**Arquivo:** `conselheiros_home.php`
+
+As três APIs são independentes entre si — nenhuma depende do resultado da outra para ser disparada — mas estão sendo executadas uma após a outra:
+
+```
+API Contatos   →→→ espera →→→ API SalesOrder   →→→ espera →→→ API Accounts
+   1.6 s                          2.8 s                          ~2.0 s
+```
+
+**Tempo atual (soma):** ~6.5 s  
+**Tempo possível (paralelo):** ~2.8 s (tempo da mais lenta)  
+**Economia estimada:** ~3.7 s
+
+---
+
+### 🟡 MÉDIO — SQL `cad_invest` redundante por página
+
+**Arquivo:** `conselheiros_home.php`
+
+```php
+$f_rs = $con->prepare("select accountid from cad_invest where contactid = :pVariavel");
+```
+
+Essa query busca o `accountid` do conselheiro a cada carregamento. O resultado não muda entre páginas e poderia ser salvo na `$_SESSION` no login, eliminando a query.
+
+```php
+// Executar apenas uma vez, no login:
+$_SESSION['id_cont_logado'] = $f_row->accountid;
+
+// No conselheiros_home.php — apenas ler da sessão:
+// (a query já foi removida no arquivo atual, mas o session
+//  precisa ser populado em outro ponto)
+```
+
+---
+
+### 🟢 BAIXO — `$_SESSION['tken']` gerado em toda requisição
+
+**Arquivo:** `index.php`
+
+```php
+$_SESSION['tken'] = generateRandomString(24);
+```
+
+Isso recria o token a cada page load, o que pode causar problemas de validade em uploads simultâneos. Deveria ser gerado apenas quando o módulo `cad_comp_ong` for carregado (já existe essa checagem mais abaixo, mas a geração no topo é desnecessária).
+
+---
+
+### 🟢 BAIXO — Bloco `else` de `$homenova` nunca executa
+
+**Arquivo:** `conselheiros_home.php`
+
+```php
+$homenova = 1; // hardcoded
+
+if($homenova){ ... }
+else{
+    // ← este bloco NUNCA executa
+    // contém 2 chamadas ONGs/resgatar e 1 Projetos/resgatar
+    // código morto que pode ser removido
+}
+```
+
+Não causa lentidão (não executa), mas aumenta o tamanho e a complexidade do arquivo desnecessariamente.
+
+---
+
+## 4. Resumo de Impacto
+
+| Problema | Arquivo | Tempo desperdiçado | Prioridade |
+|---|---|---|---|
+| topo.php com chamada ao CRM | index.php | ~4.758 s | 🔴 Crítico |
+| APIs sequenciais ao CRM | conselheiros_home.php | ~3.7 s ganho c/ paralelo | 🔴 Crítico |
+| Dados do usuário não cacheados na sessão | index.php + topo.php | ~4.758 s (junto ao topo) | 🟠 Alto |
+| SQL cad_invest por página | conselheiros_home.php | ~0.001 s | 🟡 Médio |
+| Token gerado no topo sempre | index.php | desprezível | 🟢 Baixo |
+| Bloco else código morto | conselheiros_home.php | 0 s (não executa) | 🟢 Baixo |
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Melhorias de Desempenho — Página Home OSC (Engaja Brasil)
 
 
