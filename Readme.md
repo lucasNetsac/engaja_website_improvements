@@ -48,8 +48,10 @@ O topo carrega um dos três menus dependendo da sessão:
 - `menu_sys_invest2.php` — comentado
 - `menu_sys.php` — para não logados
 
-Um desses menus está fazendo **chamadas HTTP ao CRM** para montar o cabeçalho da página (nome do usuário, notificações, etc.), bloqueando tudo antes mesmo do conteúdo carregar.
+O menu menu_sys_invest que é utilizado nos testes, faz chamadas para:
 
+- 'mode' => 'Accounts','action'=>'resgatar'
+- 'mode' => 'SalesOrder','action'=>'listar_registro'
 **Também suspeito:**
 ```php
 RetornaDescNovo('usuarios','id_plano','id',$_SESSION['id_logado'],$con)
